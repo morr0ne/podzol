@@ -1,4 +1,7 @@
+use anyhow::Result;
 use clap::{Parser, Subcommand};
+
+mod manifest;
 
 /// Podzol - A modpack manager
 #[derive(Parser)]
@@ -15,10 +18,12 @@ enum Commands {
     Remove,
 }
 
-fn main() {
+fn main() -> Result<()> {
     let Args { command } = Args::parse();
 
     match command {
         _ => todo!(),
     }
+
+    Ok(())
 }
