@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, sync::Arc};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -6,6 +6,8 @@ use clap::{Parser, Subcommand};
 mod manifest;
 use manifest::Manifest;
 use reqwest::Client;
+use rustls::crypto::aws_lc_rs;
+use rustls_platform_verifier::BuilderVerifierExt;
 use serde::{Deserialize, Serialize};
 
 /// Podzol - A modpack package manager
@@ -35,7 +37,14 @@ struct Version {}
 async fn main() -> Result<()> {
     let Args { command } = Args::parse();
 
-    let client = Client::new();
+    let client = Client::builder()
+        .use_preconfigured_tls(
+            rustls::ClientConfig::builder_with_provider(Arc::new(aws_lc_rs::default_provider()))
+                .with_safe_default_protocol_versions()?
+                .with_platform_verifier()
+                .with_no_client_auth(),
+        )
+        .build()?;
 
     match command {
         Commands::Add { r#mod } => {
