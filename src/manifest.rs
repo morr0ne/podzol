@@ -1,32 +1,61 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use serde_with::{serde_as, DisplayFromStr};
+use std::{collections::HashMap, fmt::Display, str::FromStr};
 
 #[derive(Debug, Deserialize, Serialize)]
-struct Manifest {
-    pack: Pack,
+pub struct Manifest {
+    pub pack: Pack,
     #[serde(default)]
-    mods: HashMap<String, Mod>,
+    pub mods: HashMap<String, Mod>,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Pack {
+    pub name: String,
+    pub version: String,
+    pub minecraft: String,
+    #[serde_as(as = "DisplayFromStr")]
+    pub loader: Loader,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Pack {
-    name: String,
-    version: String,
-    minecraft: String,
-    loader: Loader,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-enum Loader {
+pub enum Loader {
     Fabric,
     Forge,
     Quilt,
     NeoForge,
 }
 
+impl FromStr for Loader {
+    type Err = String;
+
+    fn from_str(loader: &str) -> Result<Self, Self::Err> {
+        match loader {
+            "fabric" => Ok(Loader::Fabric),
+            "forge" => Ok(Loader::Forge),
+            "quilt" => Ok(Loader::Quilt),
+            "neoforge" => Ok(Loader::NeoForge),
+            _ => Err(format!(
+                "Unknown loader '{loader}'. Supported loaders are: fabric, forge, quilt, neoforge",
+            )),
+        }
+    }
+}
+
+impl Display for Loader {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Loader::Fabric => write!(f, "fabric"),
+            Loader::Forge => write!(f, "forge"),
+            Loader::Quilt => write!(f, "quilt"),
+            Loader::NeoForge => write!(f, "neoforge"),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-enum Mod {
+pub enum Mod {
     Version(String),
 }
