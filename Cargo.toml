@@ -42,3 +42,4 @@ serde_with = { version = "3.12.0", default-features = false, features = [
 ] }
 tokio = { version = "1.43.0", features = ["rt-multi-thread", "macros"] }
 toml_edit = { version = "0.22.22", features = ["serde"] }
+url = { version = "2.5.4", features = ["serde"] }
