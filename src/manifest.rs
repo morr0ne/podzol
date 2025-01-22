@@ -32,10 +32,10 @@ impl FromStr for Loader {
 
     fn from_str(loader: &str) -> Result<Self, Self::Err> {
         match loader {
-            "fabric" => Ok(Loader::Fabric),
-            "forge" => Ok(Loader::Forge),
-            "quilt" => Ok(Loader::Quilt),
-            "neoforge" => Ok(Loader::NeoForge),
+            "fabric" => Ok(Self::Fabric),
+            "forge" => Ok(Self::Forge),
+            "quilt" => Ok(Self::Quilt),
+            "neoforge" => Ok(Self::NeoForge),
             _ => Err(format!(
                 "Unknown loader '{loader}'. Supported loaders are: fabric, forge, quilt, neoforge",
             )),
@@ -46,10 +46,10 @@ impl FromStr for Loader {
 impl Display for Loader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Loader::Fabric => write!(f, "fabric"),
-            Loader::Forge => write!(f, "forge"),
-            Loader::Quilt => write!(f, "quilt"),
-            Loader::NeoForge => write!(f, "neoforge"),
+            Self::Fabric => write!(f, "fabric"),
+            Self::Forge => write!(f, "forge"),
+            Self::Quilt => write!(f, "quilt"),
+            Self::NeoForge => write!(f, "neoforge"),
         }
     }
 }
