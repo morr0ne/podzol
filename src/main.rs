@@ -8,7 +8,7 @@ use manifest::Manifest;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-/// Podzol - A modpack manager
+/// Podzol - A modpack package manager
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -18,9 +18,14 @@ struct Args {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Create a new podzol project in the specified directory
     Init,
+    /// Add a mod to the manifest
     Add { r#mod: String },
+    /// Remove a mod from the manifest
     Remove,
+    /// Exports the project
+    Export,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
