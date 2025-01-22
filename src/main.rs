@@ -3,12 +3,15 @@ use std::{fs, sync::Arc};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
-mod manifest;
-use manifest::Manifest;
 use reqwest::Client;
 use rustls::crypto::aws_lc_rs;
 use rustls_platform_verifier::BuilderVerifierExt;
 use serde::{Deserialize, Serialize};
+
+mod manifest;
+mod mrpack;
+
+use manifest::Manifest;
 
 /// Podzol - A modpack package manager
 #[derive(Parser)]
