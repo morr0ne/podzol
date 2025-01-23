@@ -10,7 +10,18 @@ use serde::{Deserialize, Serialize};
 use crate::manifest::Loader;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Version {}
+pub struct Version {
+    pub files: Vec<File>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+
+pub struct File {
+    pub hashes: HashMap<String, String>,
+    pub url: String,
+    pub filename: String,
+    pub size: u64,
+}
 
 pub struct Client {
     http_client: HttpClient,
