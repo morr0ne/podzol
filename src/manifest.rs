@@ -1,11 +1,11 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
-use std::{collections::HashMap, fmt::Display, str::FromStr};
+use std::{collections::HashMap, fmt::Display, path::PathBuf, str::FromStr};
 
 use crate::{
     modrinth::Client,
-    mrpack::{Game, Metadata},
+    mrpack::{self, Game, Metadata},
 };
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -18,12 +18,22 @@ pub struct Manifest {
 
 impl Manifest {
     pub async fn into_metadata(self, client: &Client) -> Result<Metadata> {
+        let mut files = Vec::with_capacity(self.mods.len());
+
         for (name, m) in self.mods {
             match m {
                 Mod::Version(version) => {
                     let version = client.get_version(&name, &version).await?;
 
-                    dbg!(version);
+                    for file in version.files {
+                        files.push(mrpack::File {
+                            path: PathBuf::from("mods").join(file.filename),
+                            hashes: file.hashes,
+                            env: None,
+                            downloads: vec![file.url],
+                            file_size: file.size,
+                        });
+                    }
                 }
             }
         }
@@ -45,7 +55,7 @@ impl Manifest {
             version_id: self.pack.version,
             name: self.pack.name,
             summary: self.pack.description,
-            files: vec![],
+            files,
             dependencies,
         };
 

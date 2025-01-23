@@ -59,6 +59,8 @@ async fn main() -> Result<()> {
 
             let metadata = manifest.into_metadata(&client).await?;
 
+            dbg!(&metadata);
+
             let mut writer = ZipFileWriter::with_tokio(File::create("pack.mrpack").await?);
 
             let data = serde_json::to_vec(&metadata)?;

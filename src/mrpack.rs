@@ -48,17 +48,11 @@ impl Display for Game {
 #[serde(rename_all = "camelCase")]
 pub struct File {
     pub path: PathBuf,
-    pub hashes: Hashes,
+    pub hashes: HashMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub env: Option<Env>,
     pub downloads: Vec<String>,
     pub file_size: u64, // I doubt there's stuff with files above 4gb or if it's even allowed but it's here I guess
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Hashes {
-    pub sha1: String,
-    pub sha512: String,
 }
 
 #[serde_as]
