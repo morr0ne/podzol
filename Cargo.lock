@@ -1141,7 +1141,6 @@ dependencies = [
  "serde_with",
  "tokio",
  "toml_edit",
- "url",
 ]
 
 [[package]]
@@ -1783,7 +1782,6 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
- "serde",
 ]
 
 [[package]]
