@@ -57,11 +57,17 @@ async fn main() -> Result<()> {
         Commands::Export => {
             let manifest: Manifest = toml_edit::de::from_slice(&fs::read("podzol.toml")?)?;
 
+            let mut writer = ZipFileWriter::with_tokio(
+                File::create(format!(
+                    "{}-{}.mrpack",
+                    manifest.pack.name, manifest.pack.version
+                ))
+                .await?,
+            );
+
             let metadata = manifest.into_metadata(&client).await?;
 
             dbg!(&metadata);
-
-            let mut writer = ZipFileWriter::with_tokio(File::create("pack.mrpack").await?);
 
             let data = serde_json::to_vec(&metadata)?;
             let entry = ZipEntryBuilder::new(
