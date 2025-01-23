@@ -54,6 +54,17 @@ impl Display for Loader {
     }
 }
 
+impl Loader {
+    pub const fn as_mrpack(&self) -> &'static str {
+        match self {
+            Self::Fabric => "fabric-loader",
+            Self::Forge => "forge",
+            Self::Quilt => "quilt-loader",
+            Self::NeoForge => "neoforge",
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Mod {
