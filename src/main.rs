@@ -9,12 +9,13 @@ use tokio::fs::File;
 use reqwest::Client;
 use rustls::crypto::aws_lc_rs;
 use rustls_platform_verifier::BuilderVerifierExt;
-use serde::{Deserialize, Serialize};
 
 mod manifest;
+mod modrinth;
 mod mrpack;
 
-use manifest::Manifest;
+use manifest::{Manifest, Mod};
+use modrinth::Version;
 use mrpack::{Game, Metadata};
 
 /// Podzol - A modpack package manager
@@ -37,9 +38,6 @@ enum Commands {
     Export,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Version {}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     let Args { command } = Args::parse();
@@ -56,8 +54,6 @@ async fn main() -> Result<()> {
     match command {
         Commands::Add { r#mod } => {
             let manifest: Manifest = toml_edit::de::from_slice(&fs::read("podzol.toml")?)?;
-
-            // dbg!(manifest);
 
             let loaders = manifest
                 .enviroment
@@ -84,7 +80,22 @@ async fn main() -> Result<()> {
         Commands::Export => {
             let manifest: Manifest = toml_edit::de::from_slice(&fs::read("podzol.toml")?)?;
 
-            let mut writer = ZipFileWriter::with_tokio(File::create("pack.mrpack").await?);
+            for (name, m) in manifest.mods {
+                match m {
+                    Mod::Version(version) => {
+                        let res: Version = client
+                            .get(format!(
+                                "https://api.modrinth.com/v2/project/{name}/version/{version}"
+                            ))
+                            .send()
+                            .await?
+                            .json()
+                            .await?;
+
+                        dbg!(res);
+                    }
+                }
+            }
 
             let dependencies: HashMap<String, String> = manifest
                 .enviroment
@@ -106,6 +117,8 @@ async fn main() -> Result<()> {
                 files: vec![],
                 dependencies,
             };
+
+            let mut writer = ZipFileWriter::with_tokio(File::create("pack.mrpack").await?);
 
             let data = serde_json::to_vec(&metadata)?;
             let entry = ZipEntryBuilder::new(
