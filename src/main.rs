@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs, sync::Arc};
 use anyhow::Result;
 use async_zip::{base::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use clap::{Parser, Subcommand};
-use mrpack::{Game, Metadata};
+use itertools::Itertools;
 use tokio::fs::File;
 
 use reqwest::Client;
@@ -15,6 +15,7 @@ mod manifest;
 mod mrpack;
 
 use manifest::Manifest;
+use mrpack::{Game, Metadata};
 
 /// Podzol - A modpack package manager
 #[derive(Parser)]
@@ -58,13 +59,19 @@ async fn main() -> Result<()> {
 
             // dbg!(manifest);
 
-            let res: Vec<Version> = client
+            let loaders = manifest
+                .enviroment
+                .loaders
+                .iter()
+                .format_with(",", |(loader, _), f| f(&format_args!("\"{loader}\"")));
+
+            let _res: Vec<Version> = client
                 .get(format!("https://api.modrinth.com/v2/project/{mod}/version"))
                 .query(&[
-                    ("loaders", format!(r#"["{}"]"#, manifest.pack.loader)),
+                    ("loaders", format!("[{loaders}]")),
                     (
                         "game_versions",
-                        format!(r#"["{}"]"#, manifest.pack.minecraft),
+                        format!(r#"["{}"]"#, manifest.enviroment.minecraft),
                     ),
                 ])
                 .send()
@@ -79,15 +86,23 @@ async fn main() -> Result<()> {
 
             let mut writer = ZipFileWriter::with_tokio(File::create("pack.mrpack").await?);
 
-            // let dependencies = HashMap::from([("loader", manifest.pack.loader)]);
-            let dependencies = HashMap::from([("minecraft".to_string(), manifest.pack.minecraft)]);
+            let dependencies: HashMap<String, String> = manifest
+                .enviroment
+                .loaders
+                .into_iter()
+                .map(|(loader, version)| (loader.as_mrpack().to_string(), version))
+                .chain(std::iter::once((
+                    "minecraft".to_string(),
+                    manifest.enviroment.minecraft,
+                )))
+                .collect();
 
             let metadata = Metadata {
                 format_version: 1,
                 game: Game::Minecraft,
-                version_id: "1.0.0".to_string(),
-                name: "Mati qol ".to_string(),
-                summary: None,
+                version_id: manifest.pack.version,
+                name: manifest.pack.name,
+                summary: manifest.pack.description,
                 files: vec![],
                 dependencies,
             };

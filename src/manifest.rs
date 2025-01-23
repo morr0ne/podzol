@@ -1,25 +1,30 @@
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DisplayFromStr};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::{collections::HashMap, fmt::Display, str::FromStr};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Manifest {
     pub pack: Pack,
+    pub enviroment: Enviroment,
     #[serde(default)]
     pub mods: HashMap<String, Mod>,
 }
 
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Pack {
     pub name: String,
     pub version: String,
-    pub minecraft: String,
-    #[serde_as(as = "DisplayFromStr")]
-    pub loader: Loader,
+    pub description: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Enviroment {
+    pub minecraft: String,
+    #[serde(default, flatten)]
+    pub loaders: HashMap<Loader, String>,
+}
+
+#[derive(Debug, DeserializeFromStr, SerializeDisplay, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Loader {
     Fabric,
     Forge,
