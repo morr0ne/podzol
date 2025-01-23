@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs};
+use std::fs;
 
 use anyhow::Result;
 use async_zip::{base::write::ZipFileWriter, Compression, ZipEntryBuilder};
@@ -9,9 +9,8 @@ mod manifest;
 mod modrinth;
 mod mrpack;
 
-use manifest::{Manifest, Mod};
+use manifest::Manifest;
 use modrinth::Client;
-use mrpack::{Game, Metadata};
 
 /// Podzol - A modpack package manager
 #[derive(Parser)]
@@ -58,36 +57,7 @@ async fn main() -> Result<()> {
         Commands::Export => {
             let manifest: Manifest = toml_edit::de::from_slice(&fs::read("podzol.toml")?)?;
 
-            for (name, m) in manifest.mods {
-                match m {
-                    Mod::Version(version) => {
-                        let version = client.get_version(&name, &version).await?;
-
-                        dbg!(version);
-                    }
-                }
-            }
-
-            let dependencies: HashMap<String, String> = manifest
-                .enviroment
-                .loaders
-                .into_iter()
-                .map(|(loader, version)| (loader.as_mrpack().to_string(), version))
-                .chain(std::iter::once((
-                    "minecraft".to_string(),
-                    manifest.enviroment.minecraft,
-                )))
-                .collect();
-
-            let metadata = Metadata {
-                format_version: 1,
-                game: Game::Minecraft,
-                version_id: manifest.pack.version,
-                name: manifest.pack.name,
-                summary: manifest.pack.description,
-                files: vec![],
-                dependencies,
-            };
+            let metadata = manifest.into_metadata(&client).await?;
 
             let mut writer = ZipFileWriter::with_tokio(File::create("pack.mrpack").await?);
 

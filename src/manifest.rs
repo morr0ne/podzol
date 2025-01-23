@@ -1,6 +1,12 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::{collections::HashMap, fmt::Display, str::FromStr};
+
+use crate::{
+    modrinth::Client,
+    mrpack::{Game, Metadata},
+};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Manifest {
@@ -8,6 +14,43 @@ pub struct Manifest {
     pub enviroment: Enviroment,
     #[serde(default)]
     pub mods: HashMap<String, Mod>,
+}
+
+impl Manifest {
+    pub async fn into_metadata(self, client: &Client) -> Result<Metadata> {
+        for (name, m) in self.mods {
+            match m {
+                Mod::Version(version) => {
+                    let version = client.get_version(&name, &version).await?;
+
+                    dbg!(version);
+                }
+            }
+        }
+
+        let dependencies: HashMap<String, String> = self
+            .enviroment
+            .loaders
+            .into_iter()
+            .map(|(loader, version)| (loader.as_mrpack().to_string(), version))
+            .chain(std::iter::once((
+                "minecraft".to_string(),
+                self.enviroment.minecraft,
+            )))
+            .collect();
+
+        let metadata = Metadata {
+            format_version: 1,
+            game: Game::Minecraft,
+            version_id: self.pack.version,
+            name: self.pack.name,
+            summary: self.pack.description,
+            files: vec![],
+            dependencies,
+        };
+
+        Ok(metadata)
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
