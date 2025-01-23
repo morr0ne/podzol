@@ -1,7 +1,10 @@
-use std::{fs, sync::Arc};
+use std::{collections::HashMap, fs, sync::Arc};
 
 use anyhow::Result;
+use async_zip::{base::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use clap::{Parser, Subcommand};
+use mrpack::{Game, Metadata};
+use tokio::fs::File;
 
 use reqwest::Client;
 use rustls::crypto::aws_lc_rs;
@@ -70,6 +73,34 @@ async fn main() -> Result<()> {
                 .await?;
 
             println!("Adding..")
+        }
+        Commands::Export => {
+            let manifest: Manifest = toml_edit::de::from_slice(&fs::read("podzol.toml")?)?;
+
+            let mut writer = ZipFileWriter::with_tokio(File::create("pack.mrpack").await?);
+
+            // let dependencies = HashMap::from([("loader", manifest.pack.loader)]);
+            let dependencies = HashMap::from([("minecraft".to_string(), manifest.pack.minecraft)]);
+
+            let metadata = Metadata {
+                format_version: 1,
+                game: Game::Minecraft,
+                version_id: "1.0.0".to_string(),
+                name: "Mati qol ".to_string(),
+                summary: None,
+                files: vec![],
+                dependencies,
+            };
+
+            let data = serde_json::to_vec(&metadata)?;
+            let entry = ZipEntryBuilder::new(
+                "modrinth.index.json".to_string().into(),
+                Compression::Deflate,
+            );
+
+            writer.write_entry_whole(entry, &data).await?;
+
+            writer.close().await?;
         }
         _ => todo!(),
     }
