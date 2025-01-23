@@ -2,7 +2,6 @@ use std::{collections::HashMap, fmt::Display, path::PathBuf, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
-use url::Url;
 
 #[serde_as]
 #[derive(Debug, Deserialize, Serialize)]
@@ -52,7 +51,7 @@ pub struct File {
     pub hashes: Hashes,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub env: Option<Env>,
-    pub downloads: Vec<Url>,
+    pub downloads: Vec<String>,
     pub file_size: u64, // I doubt there's stuff with files above 4gb or if it's even allowed but it's here I guess
 }
 
