@@ -1,21 +1,16 @@
-use std::{collections::HashMap, fs, sync::Arc};
+use std::{collections::HashMap, fs};
 
 use anyhow::Result;
 use async_zip::{base::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use clap::{Parser, Subcommand};
-use itertools::Itertools;
 use tokio::fs::File;
-
-use reqwest::Client;
-use rustls::crypto::aws_lc_rs;
-use rustls_platform_verifier::BuilderVerifierExt;
 
 mod manifest;
 mod modrinth;
 mod mrpack;
 
 use manifest::{Manifest, Mod};
-use modrinth::Version;
+use modrinth::Client;
 use mrpack::{Game, Metadata};
 
 /// Podzol - A modpack package manager
@@ -42,38 +37,21 @@ enum Commands {
 async fn main() -> Result<()> {
     let Args { command } = Args::parse();
 
-    let client = Client::builder()
-        .use_preconfigured_tls(
-            rustls::ClientConfig::builder_with_provider(Arc::new(aws_lc_rs::default_provider()))
-                .with_safe_default_protocol_versions()?
-                .with_platform_verifier()
-                .with_no_client_auth(),
-        )
-        .build()?;
+    let client = Client::new()?;
 
     match command {
         Commands::Add { r#mod } => {
             let manifest: Manifest = toml_edit::de::from_slice(&fs::read("podzol.toml")?)?;
 
-            let loaders = manifest
-                .enviroment
-                .loaders
-                .iter()
-                .format_with(",", |(loader, _), f| f(&format_args!("\"{loader}\"")));
-
-            let _res: Vec<Version> = client
-                .get(format!("https://api.modrinth.com/v2/project/{mod}/version"))
-                .query(&[
-                    ("loaders", format!("[{loaders}]")),
-                    (
-                        "game_versions",
-                        format!(r#"["{}"]"#, manifest.enviroment.minecraft),
-                    ),
-                ])
-                .send()
-                .await?
-                .json()
+            let version = client
+                .get_project_versions(
+                    &r#mod,
+                    &manifest.enviroment.minecraft,
+                    &manifest.enviroment.loaders,
+                )
                 .await?;
+
+            dbg!(version);
 
             println!("Adding..")
         }
@@ -83,16 +61,9 @@ async fn main() -> Result<()> {
             for (name, m) in manifest.mods {
                 match m {
                     Mod::Version(version) => {
-                        let res: Version = client
-                            .get(format!(
-                                "https://api.modrinth.com/v2/project/{name}/version/{version}"
-                            ))
-                            .send()
-                            .await?
-                            .json()
-                            .await?;
+                        let version = client.get_version(&name, &version).await?;
 
-                        dbg!(res);
+                        dbg!(version);
                     }
                 }
             }
