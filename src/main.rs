@@ -11,6 +11,7 @@ mod mrpack;
 
 use manifest::Manifest;
 use modrinth::Client;
+use toml_edit::{DocumentMut, InlineTable};
 
 /// Podzol - A modpack package manager
 #[derive(Parser)]
@@ -25,7 +26,7 @@ enum Commands {
     /// Create a new podzol project in the specified directory
     Init,
     /// Add a mod to the manifest
-    Add { r#mod: String },
+    Add { name: String },
     /// Remove a mod from the manifest
     Remove,
     /// Exports the project
@@ -39,18 +40,31 @@ async fn main() -> Result<()> {
     let client = Client::new()?;
 
     match command {
-        Commands::Add { r#mod } => {
-            let manifest: Manifest = toml_edit::de::from_slice(&fs::read("podzol.toml")?)?;
+        Commands::Add { name } => {
+            let manifest_src = fs::read_to_string("podzol.toml")?;
+            let mut document: DocumentMut = manifest_src.parse()?;
+            let manifest: Manifest = toml_edit::de::from_document(document.clone())?;
 
-            let _version = client
+            let versions = client
                 .get_project_versions(
-                    &r#mod,
+                    &name,
                     &manifest.enviroment.minecraft,
                     &manifest.enviroment.loaders,
                 )
                 .await?;
 
-            println!("Adding..")
+            // FIXME: use a proper strategy to choose
+            let version = &versions[0];
+            let version_number = &version.version_number;
+
+            let mut mod_table = InlineTable::new();
+            mod_table.insert("version", version_number.into());
+            mod_table.insert("side", "both".into());
+            document["mods"][&name] = mod_table.into();
+
+            fs::write("podzol.toml", document.to_string())?;
+
+            println!("Added {name} {version_number} to mods");
         }
         Commands::Export => {
             let manifest: Manifest = toml_edit::de::from_slice(&fs::read("podzol.toml")?)?;
