@@ -1,7 +1,7 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
-use std::{collections::HashMap, fmt::Display, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, fmt::Display, path::Path, str::FromStr};
 
 use crate::{
     modrinth::Client,
@@ -9,6 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Manifest {
     pub pack: Pack,
     pub enviroment: Enviroment,
@@ -17,29 +18,47 @@ pub struct Manifest {
     #[serde(default)]
     pub resource_packs: HashMap<String, Definition>,
     #[serde(default)]
-    pub data_packs: HashMap<String, Definition>,
-    #[serde(default)]
     pub shaders: HashMap<String, Definition>,
 }
 
 impl Manifest {
     pub async fn into_metadata(self, client: &Client) -> Result<Metadata> {
-        let mut files = Vec::with_capacity(self.mods.len());
-
-        for (name, definition) in self.mods {
+        async fn put_into_files<P: AsRef<Path>>(
+            client: &Client,
+            files: &mut Vec<mrpack::File>,
+            path: P,
+            name: &str,
+            definition: &Definition,
+        ) -> Result<()> {
             let Definition { version, side } = definition;
 
             let version = client.get_version(&name, &version).await?;
 
             for file in version.files {
                 files.push(mrpack::File {
-                    path: PathBuf::from("mods").join(file.filename),
+                    path: path.as_ref().join(file.filename),
                     hashes: file.hashes,
                     env: Some(side.clone().into()),
                     downloads: vec![file.url],
                     file_size: file.size,
                 });
             }
+
+            Ok(())
+        }
+
+        let mut files = Vec::with_capacity(self.mods.len());
+
+        for (name, definition) in self.mods {
+            put_into_files(client, &mut files, "mods", &name, &definition).await?;
+        }
+
+        for (name, definition) in self.resource_packs {
+            put_into_files(client, &mut files, "resourcepacks", &name, &definition).await?;
+        }
+
+        for (name, definition) in self.shaders {
+            put_into_files(client, &mut files, "shaderpacks", &name, &definition).await?;
         }
 
         let dependencies: HashMap<String, String> = self
