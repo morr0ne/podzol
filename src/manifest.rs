@@ -21,20 +21,18 @@ impl Manifest {
         let mut files = Vec::with_capacity(self.mods.len());
 
         for (name, m) in self.mods {
-            match m {
-                Mod::Version(version) => {
-                    let version = client.get_version(&name, &version).await?;
+            let Mod { version, side } = m;
 
-                    for file in version.files {
-                        files.push(mrpack::File {
-                            path: PathBuf::from("mods").join(file.filename),
-                            hashes: file.hashes,
-                            env: None,
-                            downloads: vec![file.url],
-                            file_size: file.size,
-                        });
-                    }
-                }
+            let version = client.get_version(&name, &version).await?;
+
+            for file in version.files {
+                files.push(mrpack::File {
+                    path: PathBuf::from("mods").join(file.filename),
+                    hashes: file.hashes,
+                    env: None,
+                    downloads: vec![file.url],
+                    file_size: file.size,
+                });
             }
         }
 
@@ -124,7 +122,40 @@ impl Loader {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum Mod {
-    Version(String),
+pub struct Mod {
+    version: String,
+    side: Side,
+}
+
+#[derive(Debug, DeserializeFromStr, SerializeDisplay)]
+
+pub enum Side {
+    Client,
+    Server,
+    Both,
+}
+
+impl FromStr for Side {
+    type Err = String;
+
+    fn from_str(side: &str) -> Result<Self, Self::Err> {
+        match side {
+            "client" => Ok(Self::Client),
+            "server" => Ok(Self::Server),
+            "both" => Ok(Self::Both),
+            _ => Err(format!(
+                "Unknown side '{side}'. Supported sides are: client, server, both",
+            )),
+        }
+    }
+}
+
+impl Display for Side {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Client => write!(f, "client"),
+            Self::Server => write!(f, "server"),
+            Self::Both => write!(f, "both"),
+        }
+    }
 }
