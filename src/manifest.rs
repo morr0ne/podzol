@@ -13,15 +13,21 @@ pub struct Manifest {
     pub pack: Pack,
     pub enviroment: Enviroment,
     #[serde(default)]
-    pub mods: HashMap<String, Mod>,
+    pub mods: HashMap<String, Definition>,
+    #[serde(default)]
+    pub resource_packs: HashMap<String, Definition>,
+    #[serde(default)]
+    pub data_packs: HashMap<String, Definition>,
+    #[serde(default)]
+    pub shaders: HashMap<String, Definition>,
 }
 
 impl Manifest {
     pub async fn into_metadata(self, client: &Client) -> Result<Metadata> {
         let mut files = Vec::with_capacity(self.mods.len());
 
-        for (name, m) in self.mods {
-            let Mod { version, side } = m;
+        for (name, definition) in self.mods {
+            let Definition { version, side } = definition;
 
             let version = client.get_version(&name, &version).await?;
 
@@ -29,7 +35,7 @@ impl Manifest {
                 files.push(mrpack::File {
                     path: PathBuf::from("mods").join(file.filename),
                     hashes: file.hashes,
-                    env: None,
+                    env: Some(side.clone().into()),
                     downloads: vec![file.url],
                     file_size: file.size,
                 });
@@ -122,12 +128,12 @@ impl Loader {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Mod {
+pub struct Definition {
     version: String,
     side: Side,
 }
 
-#[derive(Debug, DeserializeFromStr, SerializeDisplay)]
+#[derive(Debug, DeserializeFromStr, SerializeDisplay, Clone)]
 
 pub enum Side {
     Client,
