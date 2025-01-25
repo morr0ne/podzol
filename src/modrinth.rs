@@ -23,6 +23,7 @@ pub struct File {
     pub size: u64,
 }
 
+#[derive(Clone)]
 pub struct Client {
     http_client: HttpClient,
 }
