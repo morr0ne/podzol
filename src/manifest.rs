@@ -1,7 +1,10 @@
 use anyhow::Result;
+use futures_util::future::try_join_all;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::{collections::HashMap, fmt::Display, path::Path, str::FromStr};
+use tokio::task;
 
 use crate::{
     modrinth::Client,
@@ -23,43 +26,99 @@ pub struct Manifest {
 
 impl Manifest {
     pub async fn into_metadata(self, client: &Client) -> Result<Metadata> {
-        async fn put_into_files<P: AsRef<Path>>(
-            client: &Client,
-            files: &mut Vec<mrpack::File>,
+        async fn process_items<P: AsRef<Path> + Send + 'static>(
+            client: Client,
+            items: HashMap<String, Definition>,
             path: P,
-            name: &str,
-            definition: &Definition,
-        ) -> Result<()> {
-            let Definition { version, side } = definition;
+            mp: MultiProgress,
+            total_pb: ProgressBar,
+        ) -> Result<Vec<mrpack::File>> {
+            let tasks: Vec<_> = items
+                .into_iter()
+                .map(|(name, definition)| {
+                    let client = client.clone();
+                    let path = path.as_ref().to_owned();
+                    let pb = mp.add(ProgressBar::new(1));
+                    pb.set_style(
+                        ProgressStyle::default_bar()
+                            .template(
+                                "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
+                            )
+                            .unwrap(),
+                    );
+                    pb.set_message(format!("Processing {}", name));
 
-            let version = client.get_version(&name, &version).await?;
+                    let total_pb = total_pb.clone();
 
-            for file in version.files {
-                files.push(mrpack::File {
-                    path: path.as_ref().join(file.filename),
-                    hashes: file.hashes,
-                    env: Some(side.clone().into()),
-                    downloads: vec![file.url],
-                    file_size: file.size,
-                });
-            }
+                    task::spawn(async move {
+                        let Definition { version, side } = definition;
+                        let version = client.get_version(&name, &version).await?;
+                        let mut files = Vec::new();
 
-            Ok(())
+                        for file in version.files {
+                            files.push(mrpack::File {
+                                path: path.join(&file.filename),
+                                hashes: file.hashes,
+                                env: Some(side.clone().into()),
+                                downloads: vec![file.url],
+                                file_size: file.size,
+                            });
+                        }
+
+                        pb.inc(1);
+                        pb.finish_and_clear();
+                        total_pb.inc(1);
+                        Ok::<_, anyhow::Error>(files)
+                    })
+                })
+                .collect();
+
+            let results = try_join_all(tasks).await?;
+            Ok(results.into_iter().flatten().flatten().collect())
         }
 
-        let mut files = Vec::with_capacity(self.mods.len());
+        let total_items = self.mods.len() + self.resource_packs.len() + self.shaders.len();
+        let mp = MultiProgress::new();
+        let total_pb = mp.add(ProgressBar::new(total_items as u64));
+        total_pb.set_style(
+            ProgressStyle::default_bar()
+                .template("[{elapsed_precise}] {bar:40.green/blue} {pos:>7}/{len:7} {msg}")
+                .unwrap(),
+        );
+        total_pb.set_message("Total progress");
 
-        for (name, definition) in self.mods {
-            put_into_files(client, &mut files, "mods", &name, &definition).await?;
-        }
+        // Process all types concurrently
+        let (mods, resource_packs, shaders) = tokio::try_join!(
+            process_items(
+                client.clone(),
+                self.mods,
+                "mods",
+                mp.clone(),
+                total_pb.clone()
+            ),
+            process_items(
+                client.clone(),
+                self.resource_packs,
+                "resourcepacks",
+                mp.clone(),
+                total_pb.clone()
+            ),
+            process_items(
+                client.clone(),
+                self.shaders,
+                "shaderpacks",
+                mp.clone(),
+                total_pb.clone()
+            ),
+        )?;
 
-        for (name, definition) in self.resource_packs {
-            put_into_files(client, &mut files, "resourcepacks", &name, &definition).await?;
-        }
+        let mut files = Vec::with_capacity(total_items);
+        files.extend(mods);
+        files.extend(resource_packs);
+        files.extend(shaders);
 
-        for (name, definition) in self.shaders {
-            put_into_files(client, &mut files, "shaderpacks", &name, &definition).await?;
-        }
+        total_pb.finish_and_clear();
+        mp.clear().unwrap();
 
         let dependencies: HashMap<String, String> = self
             .enviroment
@@ -85,6 +144,8 @@ impl Manifest {
         Ok(metadata)
     }
 }
+
+// Rest of the code remains unchanged...
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Pack {

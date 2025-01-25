@@ -42,15 +42,13 @@ async fn main() -> Result<()> {
         Commands::Add { r#mod } => {
             let manifest: Manifest = toml_edit::de::from_slice(&fs::read("podzol.toml")?)?;
 
-            let version = client
+            let _version = client
                 .get_project_versions(
                     &r#mod,
                     &manifest.enviroment.minecraft,
                     &manifest.enviroment.loaders,
                 )
                 .await?;
-
-            dbg!(version);
 
             println!("Adding..")
         }
@@ -66,8 +64,6 @@ async fn main() -> Result<()> {
             );
 
             let metadata = manifest.into_metadata(&client).await?;
-
-            dbg!(&metadata);
 
             let data = serde_json::to_vec(&metadata)?;
             let entry = ZipEntryBuilder::new(
