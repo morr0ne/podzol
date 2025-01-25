@@ -3,6 +3,8 @@ use std::{collections::HashMap, fmt::Display, path::PathBuf, str::FromStr};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 
+use crate::manifest::Side;
+
 #[serde_as]
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -62,6 +64,25 @@ pub struct Env {
     pub client: Requirement,
     #[serde_as(as = "DisplayFromStr")]
     pub server: Requirement,
+}
+
+impl From<Side> for Env {
+    fn from(side: Side) -> Self {
+        match side {
+            Side::Client => Env {
+                client: Requirement::Required,
+                server: Requirement::Unsupported,
+            },
+            Side::Server => Env {
+                client: Requirement::Unsupported,
+                server: Requirement::Required,
+            },
+            Side::Both => Env {
+                client: Requirement::Required,
+                server: Requirement::Required,
+            },
+        }
+    }
 }
 
 #[derive(Debug)]
