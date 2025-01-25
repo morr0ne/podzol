@@ -11,6 +11,7 @@ use crate::manifest::Loader;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Version {
+    pub version_number: String,
     pub files: Vec<File>,
 }
 
