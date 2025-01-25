@@ -92,6 +92,15 @@ pub enum Requirement {
     Unsupported,
 }
 
+impl Requirement {
+    pub const fn is_needed(&self) -> bool {
+        match self {
+            Self::Required | Self::Optional => true,
+            Self::Unsupported => false,
+        }
+    }
+}
+
 impl FromStr for Requirement {
     type Err = String;
 

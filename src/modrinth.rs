@@ -6,8 +6,12 @@ use reqwest::Client as HttpClient;
 use rustls::crypto::aws_lc_rs;
 use rustls_platform_verifier::BuilderVerifierExt;
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 
-use crate::manifest::Loader;
+use crate::{
+    manifest::{Loader, Side},
+    mrpack::Requirement,
+};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Version {
@@ -22,6 +26,29 @@ pub struct File {
     pub url: String,
     pub filename: String,
     pub size: u64,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Project {
+    #[serde_as(as = "DisplayFromStr")]
+    pub client_side: Requirement,
+    #[serde_as(as = "DisplayFromStr")]
+    pub server_side: Requirement,
+}
+
+impl Project {
+    pub fn get_side(&self) -> Side {
+        if self.client_side.is_needed() && !self.server_side.is_needed() {
+            return Side::Client;
+        }
+
+        if !self.client_side.is_needed() && self.server_side.is_needed() {
+            return Side::Server;
+        }
+
+        Side::Both
+    }
 }
 
 #[derive(Clone)]
@@ -78,6 +105,18 @@ impl Client {
             .get(format!(
                 "https://api.modrinth.com/v2/project/{project}/version/{version}"
             ))
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        Ok(res)
+    }
+
+    pub async fn get_project(&self, project: &str) -> Result<Project> {
+        let res = self
+            .http_client
+            .get(format!("https://api.modrinth.com/v2/project/{project}"))
             .send()
             .await?
             .json()

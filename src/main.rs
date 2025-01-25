@@ -25,8 +25,11 @@ struct Args {
 enum Commands {
     /// Create a new podzol project in the specified directory
     Init,
-    /// Add a mod to the manifest
-    Add { name: String },
+    /// Add a project to the manifest
+    Add {
+        #[arg(required = true, num_args = 1..)]
+        projects: Vec<String>,
+    },
     /// Remove a mod from the manifest
     Remove,
     /// Exports the project
@@ -40,31 +43,35 @@ async fn main() -> Result<()> {
     let client = Client::new()?;
 
     match command {
-        Commands::Add { name } => {
+        Commands::Add { projects } => {
             let manifest_src = fs::read_to_string("podzol.toml")?;
             let mut document: DocumentMut = manifest_src.parse()?;
             let manifest: Manifest = toml_edit::de::from_document(document.clone())?;
 
-            let versions = client
-                .get_project_versions(
-                    &name,
-                    &manifest.enviroment.minecraft,
-                    &manifest.enviroment.loaders,
-                )
-                .await?;
+            for name in projects {
+                let project = client.get_project(&name).await?;
 
-            // FIXME: use a proper strategy to choose
-            let version = &versions[0];
-            let version_number = &version.version_number;
+                let versions = client
+                    .get_project_versions(
+                        &name,
+                        &manifest.enviroment.minecraft,
+                        &manifest.enviroment.loaders,
+                    )
+                    .await?;
 
-            let mut mod_table = InlineTable::new();
-            mod_table.insert("version", version_number.into());
-            mod_table.insert("side", "both".into());
-            document["mods"][&name] = mod_table.into();
+                // FIXME: use a proper strategy to choose
+                let version = &versions[0];
+                let version_number = &version.version_number;
+
+                let mut mod_table = InlineTable::new();
+                mod_table.insert("version", version_number.into());
+                mod_table.insert("side", project.get_side().to_string().into());
+                document["mods"][&name] = mod_table.into();
+
+                println!("Added {name} {version_number} to mods");
+            }
 
             fs::write("podzol.toml", document.to_string())?;
-
-            println!("Added {name} {version_number} to mods");
         }
         Commands::Export => {
             let manifest: Manifest = toml_edit::de::from_slice(&fs::read("podzol.toml")?)?;
