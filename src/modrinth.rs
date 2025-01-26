@@ -88,7 +88,7 @@ impl Client {
                 "https://api.modrinth.com/v2/project/{project}/version"
             ))
             .query(&[
-                ("loaders", format!("[{loaders}]")),
+                ("loaders", format!("[\"minecraft\", {loaders}]")),
                 ("game_versions", format!(r#"["{minecraft}"]"#)),
             ])
             .send()
