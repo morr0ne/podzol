@@ -29,7 +29,7 @@ enum Commands {
     Add {
         #[arg(required = true, num_args = 1..)]
         projects: Vec<String>,
-        #[arg(long = "type", short = 't')]
+        #[arg(long = "type", short = 't', default_value = "mod")]
         project_type: ProjectType,
     },
     /// Remove a mod from the manifest
