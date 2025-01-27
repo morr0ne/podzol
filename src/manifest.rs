@@ -1,4 +1,6 @@
 use anyhow::Result;
+use async_zip::{base::write::ZipFileWriter, Compression, ZipEntryBuilder};
+use futures_io::AsyncWrite;
 use futures_util::future::try_join_all;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use serde::{Deserialize, Serialize};
@@ -32,7 +34,11 @@ pub struct File {
 }
 
 impl Manifest {
-    pub async fn into_metadata(self, client: &Client) -> Result<Metadata> {
+    pub async fn build_mrpack<W: AsyncWrite + Unpin>(
+        self,
+        client: &Client,
+        writer: &mut ZipFileWriter<W>,
+    ) -> Result<()> {
         async fn process_items<P: AsRef<Path> + Send + 'static>(
             client: Client,
             items: HashMap<String, Definition>,
@@ -148,7 +154,15 @@ impl Manifest {
             dependencies,
         };
 
-        Ok(metadata)
+        let data = serde_json::to_vec(&metadata)?;
+        let entry = ZipEntryBuilder::new(
+            "modrinth.index.json".to_string().into(),
+            Compression::Deflate,
+        );
+
+        writer.write_entry_whole(entry, &data).await?;
+
+        Ok(())
     }
 }
 
