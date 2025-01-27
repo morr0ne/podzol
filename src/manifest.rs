@@ -16,12 +16,19 @@ use crate::{
 pub struct Manifest {
     pub pack: Pack,
     pub enviroment: Enviroment,
+    pub files: HashMap<String, File>,
     #[serde(default)]
     pub mods: HashMap<String, Definition>,
     #[serde(default)]
     pub resource_packs: HashMap<String, Definition>,
     #[serde(default)]
     pub shaders: HashMap<String, Definition>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct File {
+    pub path: String,
+    pub side: Side,
 }
 
 impl Manifest {
