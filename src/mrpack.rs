@@ -1,16 +1,14 @@
 use std::{collections::HashMap, fmt::Display, path::PathBuf, str::FromStr};
 
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DisplayFromStr};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::manifest::Side;
 
-#[serde_as]
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Metadata {
     pub format_version: u32,
-    #[serde_as(as = "DisplayFromStr")]
     pub game: Game,
     pub version_id: String,
     pub name: String,
@@ -20,7 +18,7 @@ pub struct Metadata {
     pub dependencies: HashMap<String, String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, DeserializeFromStr, SerializeDisplay)]
 pub enum Game {
     Minecraft,
 }
@@ -57,12 +55,9 @@ pub struct File {
     pub file_size: u64, // I doubt there's stuff with files above 4gb or if it's even allowed but it's here I guess
 }
 
-#[serde_as]
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Env {
-    #[serde_as(as = "DisplayFromStr")]
     pub client: Requirement,
-    #[serde_as(as = "DisplayFromStr")]
     pub server: Requirement,
 }
 
@@ -85,7 +80,7 @@ impl From<Side> for Env {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, DeserializeFromStr, SerializeDisplay)]
 pub enum Requirement {
     Required,
     Optional,

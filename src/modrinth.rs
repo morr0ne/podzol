@@ -6,7 +6,6 @@ use reqwest::Client as HttpClient;
 use rustls::crypto::aws_lc_rs;
 use rustls_platform_verifier::BuilderVerifierExt;
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DisplayFromStr};
 
 use crate::{
     manifest::{Loader, Side},
@@ -28,12 +27,9 @@ pub struct File {
     pub size: u64,
 }
 
-#[serde_as]
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Project {
-    #[serde_as(as = "DisplayFromStr")]
     pub client_side: Requirement,
-    #[serde_as(as = "DisplayFromStr")]
     pub server_side: Requirement,
 }
 
