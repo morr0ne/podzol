@@ -9,7 +9,7 @@ mod manifest;
 mod modrinth;
 mod mrpack;
 
-use manifest::Manifest;
+use manifest::{Loader, Manifest};
 use modrinth::{Client, VersionType};
 use toml_edit::{DocumentMut, InlineTable};
 
@@ -24,7 +24,14 @@ struct Args {
 #[derive(Subcommand)]
 enum Commands {
     /// Create a new podzol project in the specified directory
-    Init,
+    Init {
+        /// The minecraft version (defaults to latest)
+        #[arg(short, long)]
+        version: Option<String>,
+        /// A compatible loader
+        #[arg(short, long)]
+        loader: Option<Loader>,
+    },
     /// Add a project to the manifest
     Add {
         #[arg(required = true, num_args = 1..)]
@@ -138,14 +145,20 @@ async fn main() -> Result<()> {
 
             writer.close().await?;
         }
-        Commands::Init => {
-            let versions = client.get_game_versions().await?;
+        Commands::Init { version, .. } => {
+            let minecraft_version = if let Some(version) = version {
+                version
+            } else {
+                let versions = client.get_game_versions().await?;
 
-            let latest_version = versions
-                .into_iter()
-                .filter(|version| matches!(version.version_type, VersionType::Release))
-                .max_by_key(|version| version.date)
-                .ok_or(anyhow!("No valid Minecraft versions found"))?;
+                let latest_version = versions
+                    .into_iter()
+                    .filter(|version| matches!(version.version_type, VersionType::Release))
+                    .max_by_key(|version| version.date)
+                    .ok_or(anyhow!("No valid Minecraft versions found"))?;
+
+                latest_version.version
+            };
 
             let manifest = Manifest {
                 pack: manifest::Pack {
@@ -154,7 +167,7 @@ async fn main() -> Result<()> {
                     description: None,
                 },
                 enviroment: manifest::Enviroment {
-                    minecraft: latest_version.version,
+                    minecraft: minecraft_version,
                     loaders: HashMap::new(),
                 },
                 files: HashMap::new(),
