@@ -18,12 +18,13 @@ use crate::{
 pub struct Manifest {
     pub pack: Pack,
     pub enviroment: Enviroment,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub files: HashMap<FileLocation, Vec<String>>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub mods: HashMap<String, Definition>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub resource_packs: HashMap<String, Definition>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub shaders: HashMap<String, Definition>,
 }
 
