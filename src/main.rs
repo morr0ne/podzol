@@ -1,7 +1,7 @@
 use std::{fmt::Display, fs, str::FromStr};
 
 use anyhow::Result;
-use async_zip::{base::write::ZipFileWriter, Compression, ZipEntryBuilder};
+use async_zip::base::write::ZipFileWriter;
 use clap::{Parser, Subcommand};
 use tokio::fs::File;
 
@@ -134,15 +134,7 @@ async fn main() -> Result<()> {
                 .await?,
             );
 
-            let metadata = manifest.into_metadata(&client).await?;
-
-            let data = serde_json::to_vec(&metadata)?;
-            let entry = ZipEntryBuilder::new(
-                "modrinth.index.json".to_string().into(),
-                Compression::Deflate,
-            );
-
-            writer.write_entry_whole(entry, &data).await?;
+            manifest.build_mrpack(&client, &mut writer).await?;
 
             writer.close().await?;
         }

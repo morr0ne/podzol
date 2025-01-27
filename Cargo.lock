@@ -1183,6 +1183,7 @@ dependencies = [
  "anyhow",
  "async_zip",
  "clap",
+ "futures-io",
  "futures-util",
  "indicatif",
  "itertools 0.14.0",
