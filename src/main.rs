@@ -1,4 +1,4 @@
-use std::{fmt::Display, fs, str::FromStr};
+use std::{collections::HashMap, fmt::Display, fs, str::FromStr};
 
 use anyhow::Result;
 use async_zip::base::write::ZipFileWriter;
@@ -138,7 +138,26 @@ async fn main() -> Result<()> {
 
             writer.close().await?;
         }
-        _ => todo!(),
+        Commands::Init => {
+            let manifest = Manifest {
+                pack: manifest::Pack {
+                    name: "pack".to_string(),
+                    version: "0.1.0".to_string(),
+                    description: None,
+                },
+                enviroment: manifest::Enviroment {
+                    minecraft: "1.21.4".to_string(),
+                    loaders: HashMap::new(),
+                },
+                files: HashMap::new(),
+                mods: HashMap::new(),
+                resource_packs: HashMap::new(),
+                shaders: HashMap::new(),
+            };
+
+            fs::write("podzol.toml", &toml_edit::ser::to_string_pretty(&manifest)?)?;
+        }
+        Commands::Remove => todo!(),
     }
 
     Ok(())
