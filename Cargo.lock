@@ -1185,6 +1185,7 @@ dependencies = [
  "clap",
  "futures-io",
  "futures-util",
+ "glob",
  "indicatif",
  "itertools 0.14.0",
  "reqwest",

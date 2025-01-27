@@ -5,7 +5,7 @@ use futures_util::future::try_join_all;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
-use std::{collections::HashMap, fmt::Display, path::Path, str::FromStr};
+use std::{collections::HashMap, fmt::Display, fs, path::Path, str::FromStr};
 use tokio::task;
 
 use crate::{
@@ -18,7 +18,7 @@ use crate::{
 pub struct Manifest {
     pub pack: Pack,
     pub enviroment: Enviroment,
-    pub files: HashMap<String, File>,
+    pub files: HashMap<FileLocation, Vec<String>>,
     #[serde(default)]
     pub mods: HashMap<String, Definition>,
     #[serde(default)]
@@ -27,10 +27,49 @@ pub struct Manifest {
     pub shaders: HashMap<String, Definition>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct File {
-    pub path: String,
-    pub side: Side,
+#[derive(
+    Debug, DeserializeFromStr, SerializeDisplay, Clone, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
+
+pub enum FileLocation {
+    Client,
+    Server,
+    Common,
+}
+
+impl FileLocation {
+    pub fn as_ovveride(&self) -> &Path {
+        match self {
+            FileLocation::Client => Path::new("client-overrides"),
+            FileLocation::Server => Path::new("server-overrides"),
+            FileLocation::Common => Path::new("overrides"),
+        }
+    }
+}
+
+impl FromStr for FileLocation {
+    type Err = String;
+
+    fn from_str(location: &str) -> Result<Self, Self::Err> {
+        match location {
+            "client" => Ok(Self::Client),
+            "server" => Ok(Self::Server),
+            "common" => Ok(Self::Common),
+            _ => Err(format!(
+                "Unknown location '{location}'. Supported sides are: client, server, common",
+            )),
+        }
+    }
+}
+
+impl Display for FileLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Client => write!(f, "client"),
+            Self::Server => write!(f, "server"),
+            Self::Common => write!(f, "common"),
+        }
+    }
 }
 
 impl Manifest {
@@ -81,7 +120,7 @@ impl Manifest {
                         pb.inc(1);
                         pb.finish_and_clear();
                         total_pb.inc(1);
-                        Ok::<_, anyhow::Error>(files)
+                        anyhow::Ok(files)
                     })
                 })
                 .collect();
@@ -100,7 +139,6 @@ impl Manifest {
         );
         total_pb.set_message("Total progress");
 
-        // Process all types concurrently
         let (mods, resource_packs, shaders) = tokio::try_join!(
             process_items(
                 client.clone(),
@@ -124,6 +162,27 @@ impl Manifest {
                 total_pb.clone()
             ),
         )?;
+
+        for (location, patterns) in self.files {
+            for pattern in patterns {
+                for entry in glob::glob(&pattern)? {
+                    let path = entry?;
+
+                    let entry = ZipEntryBuilder::new(
+                        location
+                            .as_ovveride()
+                            .join(&path.strip_prefix(path.parent().unwrap())?)
+                            .display()
+                            .to_string()
+                            .into(), // This is fine... right?
+                        Compression::Deflate,
+                    );
+                    let data = fs::read(path)?;
+
+                    writer.write_entry_whole(entry, &data).await?;
+                }
+            }
+        }
 
         let mut files = Vec::with_capacity(total_items);
         files.extend(mods);
@@ -165,8 +224,6 @@ impl Manifest {
         Ok(())
     }
 }
-
-// Rest of the code remains unchanged...
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Pack {
@@ -234,7 +291,9 @@ pub struct Definition {
     side: Side,
 }
 
-#[derive(Debug, DeserializeFromStr, SerializeDisplay, Clone)]
+#[derive(
+    Debug, DeserializeFromStr, SerializeDisplay, Clone, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
 
 pub enum Side {
     Client,
