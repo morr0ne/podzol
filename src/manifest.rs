@@ -240,7 +240,9 @@ pub struct Enviroment {
     pub loaders: HashMap<Loader, String>,
 }
 
-#[derive(Debug, DeserializeFromStr, SerializeDisplay, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, DeserializeFromStr, SerializeDisplay, PartialEq, Eq, PartialOrd, Ord, Hash, Clone,
+)]
 pub enum Loader {
     Fabric,
     Forge,
