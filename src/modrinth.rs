@@ -1,11 +1,13 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fmt::Display, str::FromStr, sync::Arc};
 
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use reqwest::Client as HttpClient;
 use rustls::crypto::aws_lc_rs;
 use rustls_platform_verifier::BuilderVerifierExt;
 use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::{
     manifest::{Loader, Side},
@@ -47,6 +49,52 @@ impl Project {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GameVersion {
+    pub version: String,
+    pub version_type: VersionType,
+    pub date: DateTime<Utc>,
+    pub major: bool,
+}
+
+#[derive(
+    Debug, DeserializeFromStr, SerializeDisplay, Clone, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
+
+pub enum VersionType {
+    Release,
+    Snapshot,
+    Alpha,
+    Beta,
+}
+
+impl FromStr for VersionType {
+    type Err = String;
+
+    fn from_str(t: &str) -> Result<Self, Self::Err> {
+        match t {
+            "release" => Ok(Self::Release),
+            "snapshot" => Ok(Self::Snapshot),
+            "alpha" => Ok(Self::Alpha),
+            "beta" => Ok(Self::Beta),
+            _ => Err(format!(
+                "Unknown version type '{t}'. Supported types are: release, snapshot, alpha, beta",
+            )),
+        }
+    }
+}
+
+impl Display for VersionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Release => write!(f, "release"),
+            Self::Snapshot => write!(f, "snapshot"),
+            Self::Alpha => write!(f, "alpha"),
+            Self::Beta => write!(f, "beta"),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Client {
     http_client: HttpClient,
@@ -66,6 +114,18 @@ impl Client {
             .build()?;
 
         Ok(Self { http_client })
+    }
+
+    pub async fn get_game_versions(&self) -> Result<Vec<GameVersion>> {
+        let res = self
+            .http_client
+            .get(format!("https://api.modrinth.com/v2/tag/game_version"))
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        Ok(res)
     }
 
     pub async fn get_project_versions(
