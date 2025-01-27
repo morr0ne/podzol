@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display, fs, str::FromStr};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_zip::base::write::ZipFileWriter;
 use clap::{Parser, Subcommand};
 use tokio::fs::File;
@@ -10,7 +10,7 @@ mod modrinth;
 mod mrpack;
 
 use manifest::Manifest;
-use modrinth::Client;
+use modrinth::{Client, VersionType};
 use toml_edit::{DocumentMut, InlineTable};
 
 /// Podzol - A modpack package manager
@@ -139,6 +139,14 @@ async fn main() -> Result<()> {
             writer.close().await?;
         }
         Commands::Init => {
+            let versions = client.get_game_versions().await?;
+
+            let latest_version = versions
+                .into_iter()
+                .filter(|version| matches!(version.version_type, VersionType::Release))
+                .max_by_key(|version| version.date)
+                .ok_or(anyhow!("No valid Minecraft versions found"))?;
+
             let manifest = Manifest {
                 pack: manifest::Pack {
                     name: "pack".to_string(),
@@ -146,7 +154,7 @@ async fn main() -> Result<()> {
                     description: None,
                 },
                 enviroment: manifest::Enviroment {
-                    minecraft: "1.21.4".to_string(),
+                    minecraft: latest_version.version,
                     loaders: HashMap::new(),
                 },
                 files: HashMap::new(),

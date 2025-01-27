@@ -17,6 +17,7 @@ strip = true
 [dependencies]
 anyhow = "1.0.95"
 async_zip = { version = "0.0.17", features = ["deflate", "tokio"] }
+chrono = { version = "0.4.39", default-features = false, features = ["std", "serde"] }
 clap = { version = "4.5.27", features = [
     "derive",
     "cargo",
