@@ -152,10 +152,14 @@ async fn main() -> Result<()> {
             let name = if let Some(name) = name {
                 name
             } else {
-                "pack".to_string()
-                // let dir = current_dir()?.file_name();
+                // TODO: some degree of error handling I guess
+                let current_dir = current_dir().expect("Failed to get current directory");
 
-                // todo!()
+                current_dir
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .unwrap_or("pack")
+                    .to_string()
             };
 
             let minecraft_version = if let Some(version) = version {
