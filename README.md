@@ -1,16 +1,13 @@
 # Podzol
 
-[![Crates.io](https://img.shields.io/crates/v/podzol)](https://crates.io/crates/podzol)
-[![AUR version](https://img.shields.io/aur/version/podzol)](https://aur.archlinux.org/packages/podzol)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Crates.io](https://img.shields.io/crates/v/podzol?style=flat-square&logo=rust)](https://crates.io/crates/podzol)
+[![AUR](https://img.shields.io/aur/version/podzol?style=flat-square&logo=arch-linux)](https://aur.archlinux.org/packages/podzol)
+[![License](https://img.shields.io/badge/license-Apache_2.0-blue.svg?style=flat-square)](LICENSE)
+[![Website](https://img.shields.io/badge/website-podzol.morrone.dev-blue?style=flat-square)](https://podzol.morrone.dev)
 
-Podzol is a modern package manager for Minecraft modpacks that simplifies
-creation and management through a clean TOML-based manifest format and direct
-integration with the Modrinth API
-
-[Website](https://podzol.morrone.dev) •
-[Documentation](https://podzol.morrone.dev/docs) •
-[Crates.io](https://crates.io/crates/podzol)
+A modern package manager for Minecraft modpacks that simplifies creation and
+management through a clean TOML-based manifest format and direct integration
+with the Modrinth API.
 
 ## Features
 
