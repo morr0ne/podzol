@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, fs, str::FromStr};
+use std::{collections::HashMap, env::current_dir, fmt::Display, fs, str::FromStr};
 
 use anyhow::{anyhow, Result};
 use async_zip::base::write::ZipFileWriter;
@@ -25,6 +25,9 @@ struct Args {
 enum Commands {
     /// Create a new podzol project in the specified directory
     Init {
+        /// The name of this modpack (default to the directory name)
+        #[arg(short, long)]
+        name: Option<String>,
         /// The minecraft version (defaults to latest)
         #[arg(short, long)]
         version: Option<String>,
@@ -145,7 +148,16 @@ async fn main() -> Result<()> {
 
             writer.close().await?;
         }
-        Commands::Init { version, .. } => {
+        Commands::Init { version, name, .. } => {
+            let name = if let Some(name) = name {
+                name
+            } else {
+                "pack".to_string()
+                // let dir = current_dir()?.file_name();
+
+                // todo!()
+            };
+
             let minecraft_version = if let Some(version) = version {
                 version
             } else {
@@ -162,7 +174,7 @@ async fn main() -> Result<()> {
 
             let manifest = Manifest {
                 pack: manifest::Pack {
-                    name: "pack".to_string(),
+                    name,
                     version: "0.1.0".to_string(),
                     description: None,
                 },
