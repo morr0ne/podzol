@@ -119,7 +119,7 @@ impl Client {
     pub async fn get_game_versions(&self) -> Result<Vec<GameVersion>> {
         let res = self
             .http_client
-            .get(format!("https://api.modrinth.com/v2/tag/game_version"))
+            .get("https://api.modrinth.com/v2/tag/game_version")
             .send()
             .await?
             .json()
