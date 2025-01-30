@@ -52,7 +52,17 @@ pub async fn init(
         shaders: HashMap::new(),
     };
 
-    fs::write("podzol.toml", &toml_edit::ser::to_string_pretty(&manifest)?)?;
+    fs::write(
+        path.join("podzol.toml"),
+        &toml_edit::ser::to_string_pretty(&manifest)?,
+    )?;
+
+    fs::write(
+        path.join(".gitignore"),
+        r#"# The exported modpack
+*.mrpack
+"#,
+    )?;
 
     if !fs::exists(path.join(".git"))? {
         git2::Repository::init(path)?;
