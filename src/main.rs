@@ -149,12 +149,12 @@ async fn main() -> Result<()> {
             writer.close().await?;
         }
         Commands::Init { version, name, .. } => {
+            let current_dir = current_dir().expect("Failed to get current directory");
+
             let name = if let Some(name) = name {
                 name
             } else {
                 // TODO: some degree of error handling I guess
-                let current_dir = current_dir().expect("Failed to get current directory");
-
                 current_dir
                     .file_name()
                     .and_then(|name| name.to_str())
@@ -193,6 +193,8 @@ async fn main() -> Result<()> {
             };
 
             fs::write("podzol.toml", &toml_edit::ser::to_string_pretty(&manifest)?)?;
+
+            git2::Repository::init(current_dir)?;
         }
         Commands::Remove => todo!(),
     }
