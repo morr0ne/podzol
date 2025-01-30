@@ -1,0 +1,38 @@
+name: ci
+on: [push, pull_request]
+
+env:
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  test:
+    name: Build
+    runs-on: ubuntu-latest
+    container: ghcr.io/verdiwm/ci-image:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Try building
+        run: cargo xtask build
+
+  lint:
+    name: Lint project
+    runs-on: ubuntu-latest
+    container: ghcr.io/verdiwm/ci-image:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # - name: Run tests
+      #   run: cargo nextest run --all-features
+
+      - name: Check clippy
+        run: cargo clippy --all-targets --all-features
+
+  fmt:
+    name: Check Formatting
+    runs-on: ubuntu-latest
+    container: ghcr.io/verdiwm/ci-image:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run formatter
+        run: cargo fmt --check
