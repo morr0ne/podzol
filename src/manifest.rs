@@ -172,7 +172,7 @@ impl Manifest {
                     let entry = ZipEntryBuilder::new(
                         location
                             .as_ovveride()
-                            .join(&path.strip_prefix(path.parent().unwrap())?)
+                            .join(path.strip_prefix(path.parent().unwrap())?)
                             .display()
                             .to_string()
                             .into(), // This is fine... right?
