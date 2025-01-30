@@ -17,7 +17,7 @@ pub async fn export(client: &Client) -> Result<()> {
         .await?,
     );
 
-    manifest.build_mrpack(&client, &mut writer).await?;
+    manifest.build_mrpack(client, &mut writer).await?;
 
     writer.close().await?;
 
