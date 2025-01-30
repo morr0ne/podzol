@@ -1,17 +1,15 @@
-use std::{collections::HashMap, env::current_dir, fmt::Display, fs, str::FromStr};
+use std::{fmt::Display, str::FromStr};
 
-use anyhow::{anyhow, Result};
-use async_zip::base::write::ZipFileWriter;
+use anyhow::Result;
 use clap::{Parser, Subcommand};
-use tokio::fs::File;
+use commands::init;
+use manifest::Loader;
+use modrinth::Client;
 
+mod commands;
 mod manifest;
 mod modrinth;
 mod mrpack;
-
-use manifest::{Loader, Manifest};
-use modrinth::{Client, VersionType};
-use toml_edit::{DocumentMut, InlineTable};
 
 /// Podzol - A modpack package manager
 #[derive(Parser)]
@@ -101,100 +99,13 @@ async fn main() -> Result<()> {
             projects,
             project_type,
         } => {
-            let manifest_src = fs::read_to_string("podzol.toml")?;
-            let mut document: DocumentMut = manifest_src.parse()?;
-            let manifest: Manifest = toml_edit::de::from_document(document.clone())?;
-
-            for name in projects {
-                let project = client.get_project(&name).await?;
-
-                let versions = client
-                    .get_project_versions(
-                        &name,
-                        &manifest.enviroment.minecraft,
-                        &manifest.enviroment.loaders,
-                    )
-                    .await?;
-
-                // FIXME: use a proper strategy to choose
-                let version = &versions[0];
-                let version_number = &version.version_number;
-
-                let mut mod_table = InlineTable::new();
-                mod_table.insert("version", version_number.into());
-                mod_table.insert("side", project.get_side().to_string().into());
-                document[project_type.as_table()][&name] = mod_table.into();
-
-                println!(
-                    "Added {name} {version_number} to {}",
-                    project_type.as_table()
-                );
-            }
-
-            fs::write("podzol.toml", document.to_string())?;
+            commands::add(&client, projects, project_type).await?;
         }
         Commands::Export => {
-            let manifest: Manifest = toml_edit::de::from_slice(&fs::read("podzol.toml")?)?;
-
-            let mut writer = ZipFileWriter::with_tokio(
-                File::create(format!(
-                    "{}-{}.mrpack",
-                    manifest.pack.name, manifest.pack.version
-                ))
-                .await?,
-            );
-
-            manifest.build_mrpack(&client, &mut writer).await?;
-
-            writer.close().await?;
+            commands::export(&client).await?;
         }
         Commands::Init { version, name, .. } => {
-            let current_dir = current_dir().expect("Failed to get current directory");
-
-            let name = if let Some(name) = name {
-                name
-            } else {
-                // TODO: some degree of error handling I guess
-                current_dir
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .unwrap_or("pack")
-                    .to_string()
-            };
-
-            let minecraft_version = if let Some(version) = version {
-                version
-            } else {
-                let versions = client.get_game_versions().await?;
-
-                let latest_version = versions
-                    .into_iter()
-                    .filter(|version| matches!(version.version_type, VersionType::Release))
-                    .max_by_key(|version| version.date)
-                    .ok_or(anyhow!("No valid Minecraft versions found"))?;
-
-                latest_version.version
-            };
-
-            let manifest = Manifest {
-                pack: manifest::Pack {
-                    name,
-                    version: "0.1.0".to_string(),
-                    description: None,
-                },
-                enviroment: manifest::Enviroment {
-                    minecraft: minecraft_version,
-                    loaders: HashMap::new(),
-                },
-                files: HashMap::new(),
-                mods: HashMap::new(),
-                resource_packs: HashMap::new(),
-                shaders: HashMap::new(),
-            };
-
-            fs::write("podzol.toml", &toml_edit::ser::to_string_pretty(&manifest)?)?;
-
-            git2::Repository::init(current_dir)?;
+            init(&client, version, name).await?;
         }
         Commands::Remove => todo!(),
     }
