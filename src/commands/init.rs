@@ -1,20 +1,22 @@
 use anyhow::{anyhow, Result};
-use std::{collections::HashMap, env::current_dir, fs};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use crate::{
     manifest::{self, Manifest},
     modrinth::{Client, VersionType},
 };
 
-pub async fn init(client: &Client, version: Option<String>, name: Option<String>) -> Result<()> {
-    let current_dir = current_dir().expect("Failed to get current directory");
-
+pub async fn init(
+    client: &Client,
+    path: PathBuf,
+    version: Option<String>,
+    name: Option<String>,
+) -> Result<()> {
     let name = if let Some(name) = name {
         name
     } else {
         // TODO: some degree of error handling I guess
-        current_dir
-            .file_name()
+        path.file_name()
             .and_then(|name| name.to_str())
             .unwrap_or("pack")
             .to_string()
@@ -52,7 +54,9 @@ pub async fn init(client: &Client, version: Option<String>, name: Option<String>
 
     fs::write("podzol.toml", &toml_edit::ser::to_string_pretty(&manifest)?)?;
 
-    git2::Repository::init(current_dir)?;
+    if !fs::exists(path.join(".git"))? {
+        git2::Repository::init(path)?;
+    }
 
     Ok(())
 }

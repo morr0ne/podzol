@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::FromStr};
+use std::{env::current_dir, fmt::Display, path::PathBuf, str::FromStr};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -23,7 +23,9 @@ struct Args {
 enum Commands {
     /// Create a new podzol project in the specified directory
     Init {
-        /// The name of this modpack (default to the directory name)
+        /// Path to the directory to init (defaults to current directory)
+        path: Option<PathBuf>,
+        /// The name of this modpack (defaults to the directory name)
         #[arg(short, long)]
         name: Option<String>,
         /// The minecraft version (defaults to latest)
@@ -104,8 +106,19 @@ async fn main() -> Result<()> {
         Commands::Export => {
             commands::export(&client).await?;
         }
-        Commands::Init { version, name, .. } => {
-            init(&client, version, name).await?;
+        Commands::Init {
+            path,
+            version,
+            name,
+            ..
+        } => {
+            init(
+                &client,
+                path.unwrap_or_else(|| current_dir().expect("Failed to fetch current dir")),
+                version,
+                name,
+            )
+            .await?;
         }
         Commands::Remove => todo!(),
     }
