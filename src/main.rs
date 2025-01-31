@@ -2,7 +2,6 @@ use std::{env::current_dir, fmt::Display, path::PathBuf, str::FromStr};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use commands::init;
 use manifest::Loader;
 use modrinth::Client;
 
@@ -34,6 +33,8 @@ enum Commands {
         /// A compatible loader
         #[arg(short, long)]
         loader: Option<Loader>,
+        #[arg(long, default_value = "false")]
+        no_interactive: bool,
     },
     /// Add a project to the manifest
     Add {
@@ -110,15 +111,20 @@ async fn main() -> Result<()> {
             path,
             version,
             name,
+            no_interactive,
             ..
         } => {
-            init(
-                &client,
-                path.unwrap_or_else(|| current_dir().expect("Failed to fetch current dir")),
-                version,
-                name,
-            )
-            .await?;
+            if no_interactive {
+                commands::init(
+                    &client,
+                    path.unwrap_or_else(|| current_dir().expect("Failed to fetch current dir")),
+                    version,
+                    name,
+                )
+                .await?;
+            } else {
+                commands::init_interactive(&client).await?;
+            }
         }
         Commands::Remove => todo!(),
     }

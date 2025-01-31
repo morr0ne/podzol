@@ -1,10 +1,24 @@
 use anyhow::{anyhow, Result};
-use std::{collections::HashMap, fs, path::PathBuf};
+use inquire::Text;
+use std::{collections::HashMap, env::current_dir, fs, path::PathBuf};
 
 use crate::{
     manifest::{self, Manifest},
     modrinth::{Client, VersionType},
 };
+
+pub async fn init_interactive(client: &Client) -> Result<()> {
+    let name = Text::new("Name").prompt()?;
+    let version = Text::new("Version").prompt()?;
+
+    init(
+        client,
+        current_dir().expect("Failed to fetch current dir"),
+        Some(version),
+        Some(name),
+    )
+    .await
+}
 
 pub async fn init(
     client: &Client,
