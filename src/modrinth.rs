@@ -156,18 +156,23 @@ impl Client {
         Ok(res)
     }
 
-    pub async fn get_version(&self, project: &str, version: &str) -> Result<Version> {
-        let res = self
-            .http_client
-            .get(format!(
-                "https://api.modrinth.com/v2/project/{project}/version/{version}"
-            ))
-            .send()
-            .await?
-            .json()
+    pub async fn get_version(
+        &self,
+        project: &str,
+        minecraft: &str,
+        loaders: &HashMap<Loader, String>,
+        version: &str,
+    ) -> Result<Version> {
+        let versions = self
+            .get_project_versions(project, minecraft, loaders)
             .await?;
 
-        Ok(res)
+        let version = versions
+            .into_iter()
+            .find(|v| v.version_number == version)
+            .expect("Failed to find a valid version");
+
+        Ok(version)
     }
 
     pub async fn get_project(&self, project: &str) -> Result<Project> {
