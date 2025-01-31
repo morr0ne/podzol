@@ -6,6 +6,7 @@ use manifest::Loader;
 use modrinth::Client;
 
 mod commands;
+mod lockfile;
 mod manifest;
 mod modrinth;
 mod mrpack;
