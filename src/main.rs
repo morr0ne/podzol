@@ -28,8 +28,10 @@ enum Commands {
         #[arg(short, long)]
         name: Option<String>,
         /// The minecraft version (defaults to latest)
+        #[arg(short, long, default_value = "0.1.0")]
+        version: String,
         #[arg(short, long)]
-        version: Option<String>,
+        game_version: Option<String>,
         /// A compatible loader
         #[arg(short, long)]
         loader: Option<Loader>,
@@ -112,6 +114,7 @@ async fn main() -> Result<()> {
             version,
             name,
             no_interactive,
+            game_version,
             ..
         } => {
             if no_interactive {
@@ -119,6 +122,7 @@ async fn main() -> Result<()> {
                     &client,
                     path.unwrap_or_else(|| current_dir().expect("Failed to fetch current dir")),
                     version,
+                    game_version,
                     name,
                 )
                 .await?;

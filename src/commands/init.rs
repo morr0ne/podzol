@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use inquire::Text;
+use inquire::{Select, Text};
 use std::{collections::HashMap, env::current_dir, fs, path::PathBuf};
 
 use crate::{
@@ -11,10 +11,20 @@ pub async fn init_interactive(client: &Client) -> Result<()> {
     let name = Text::new("Name").prompt()?;
     let version = Text::new("Version").prompt()?;
 
+    let versions = client
+        .get_game_versions()
+        .await?
+        .into_iter()
+        .map(|v| v.version)
+        .collect();
+
+    let game_version = Select::new("Game version", versions).prompt()?;
+
     init(
         client,
         current_dir().expect("Failed to fetch current dir"),
-        Some(version),
+        version,
+        Some(game_version),
         Some(name),
     )
     .await
@@ -23,7 +33,8 @@ pub async fn init_interactive(client: &Client) -> Result<()> {
 pub async fn init(
     client: &Client,
     path: PathBuf,
-    version: Option<String>,
+    version: String,
+    game_version: Option<String>,
     name: Option<String>,
 ) -> Result<()> {
     let name = if let Some(name) = name {
@@ -36,8 +47,8 @@ pub async fn init(
             .to_string()
     };
 
-    let minecraft_version = if let Some(version) = version {
-        version
+    let minecraft_version = if let Some(game_version) = game_version {
+        game_version
     } else {
         let versions = client.get_game_versions().await?;
 
@@ -53,7 +64,7 @@ pub async fn init(
     let manifest = Manifest {
         pack: manifest::Pack {
             name,
-            version: "0.1.0".to_string(),
+            version,
             description: None,
         },
         enviroment: manifest::Enviroment {
