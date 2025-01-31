@@ -96,6 +96,8 @@ impl Display for ProjectType {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    tracing_subscriber::fmt::init();
+
     let Args { command } = Args::parse();
 
     let client = Client::new()?;
