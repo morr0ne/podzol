@@ -120,7 +120,7 @@ async fn main() -> Result<()> {
             if no_interactive {
                 commands::init(
                     &client,
-                    path.unwrap_or_else(|| current_dir().expect("Failed to fetch current dir")),
+                    &path.unwrap_or_else(|| current_dir().expect("Failed to fetch current dir")),
                     version,
                     game_version,
                     name,
