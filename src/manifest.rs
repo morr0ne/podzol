@@ -82,6 +82,8 @@ impl Manifest {
         async fn process_items<P: AsRef<Path> + Send + 'static>(
             client: Client,
             items: HashMap<String, Definition>,
+            minecraft: &str,
+            loaders: &HashMap<Loader, String>,
             path: P,
             mp: MultiProgress,
             total_pb: ProgressBar,
@@ -102,10 +104,14 @@ impl Manifest {
                     pb.set_message(format!("Processing {}", name));
 
                     let total_pb = total_pb.clone();
+                    let minecraft = minecraft.to_string();
+                    let loaders = loaders.clone();
 
                     task::spawn(async move {
                         let Definition { version, side } = definition;
-                        let version = client.get_version(&name, &version).await?;
+                        let version = client
+                            .get_version(&name, &minecraft, &loaders, &version)
+                            .await?;
                         let mut files = Vec::new();
 
                         for file in version.files {
@@ -148,6 +154,8 @@ impl Manifest {
             process_items(
                 client.clone(),
                 self.mods,
+                &self.enviroment.minecraft,
+                &self.enviroment.loaders,
                 "mods",
                 mp.clone(),
                 total_pb.clone()
@@ -155,6 +163,8 @@ impl Manifest {
             process_items(
                 client.clone(),
                 self.resource_packs,
+                &self.enviroment.minecraft,
+                &self.enviroment.loaders,
                 "resourcepacks",
                 mp.clone(),
                 total_pb.clone()
@@ -162,6 +172,8 @@ impl Manifest {
             process_items(
                 client.clone(),
                 self.shaders,
+                &self.enviroment.minecraft,
+                &self.enviroment.loaders,
                 "shaderpacks",
                 mp.clone(),
                 total_pb.clone()
