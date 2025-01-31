@@ -1,15 +1,25 @@
 use anyhow::{anyhow, Result};
 use inquire::{Select, Text};
-use std::{collections::HashMap, env::current_dir, fs, path::PathBuf};
+use std::{collections::HashMap, env::current_dir, fs, path::Path};
 
 use crate::{
     manifest::{self, Manifest},
     modrinth::{Client, VersionType},
 };
 
+fn name_from_path(path: &Path) -> &str {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("pack")
+}
+
 pub async fn init_interactive(client: &Client) -> Result<()> {
-    let name = Text::new("Name").prompt()?;
-    let version = Text::new("Version").prompt()?;
+    let pwd = current_dir().expect("Failed to fetch current dir");
+
+    let name = Text::new("Name")
+        .with_default(name_from_path(&pwd))
+        .prompt()?;
+    let version = Text::new("Version").with_default("0.1.0").prompt()?;
 
     let versions = client
         .get_game_versions()
@@ -20,19 +30,12 @@ pub async fn init_interactive(client: &Client) -> Result<()> {
 
     let game_version = Select::new("Game version", versions).prompt()?;
 
-    init(
-        client,
-        current_dir().expect("Failed to fetch current dir"),
-        version,
-        Some(game_version),
-        Some(name),
-    )
-    .await
+    init(client, &pwd, version, Some(game_version), Some(name)).await
 }
 
 pub async fn init(
     client: &Client,
-    path: PathBuf,
+    path: &Path,
     version: String,
     game_version: Option<String>,
     name: Option<String>,
@@ -40,11 +43,7 @@ pub async fn init(
     let name = if let Some(name) = name {
         name
     } else {
-        // TODO: some degree of error handling I guess
-        path.file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("pack")
-            .to_string()
+        name_from_path(path).to_string()
     };
 
     let minecraft_version = if let Some(game_version) = game_version {
