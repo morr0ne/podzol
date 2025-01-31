@@ -4,4 +4,4 @@ mod init;
 
 pub use add::add;
 pub use export::export;
-pub use init::init;
+pub use init::{init, init_interactive};
