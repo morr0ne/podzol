@@ -26,6 +26,7 @@ pub struct File {
     pub hashes: HashMap<String, String>,
     pub url: String,
     pub filename: String,
+    pub primary: bool,
     pub size: u64,
 }
 

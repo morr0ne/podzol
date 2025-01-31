@@ -109,6 +109,10 @@ impl Manifest {
                         let mut files = Vec::new();
 
                         for file in version.files {
+                            if !file.primary {
+                                continue;
+                            }
+
                             files.push(mrpack::File {
                                 path: path.join(&file.filename),
                                 hashes: file.hashes,
