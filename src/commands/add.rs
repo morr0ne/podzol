@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::fs;
 use toml_edit::{DocumentMut, InlineTable};
 
-use crate::{manifest::Manifest, modrinth::Client, ProjectType};
+use crate::{ProjectType, manifest::Manifest, modrinth::Client};
 
 pub async fn add(client: &Client, projects: Vec<String>, project_type: ProjectType) -> Result<()> {
     let manifest_src = fs::read_to_string("podzol.toml")?;

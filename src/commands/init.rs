@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use inquire::{Select, Text};
 use std::{collections::HashMap, env::current_dir, fs, path::Path};
 

@@ -76,7 +76,7 @@ impl FromStr for ProjectType {
         match project_type {
             "mod" | "mods" => Ok(Self::Mod),
             "resource-pack" | "resource-packs" | "resource" | "resources" => Ok(Self::ResourcePack),
-            "shader" | "shaders"=> Ok(Self::Shader),
+            "shader" | "shaders" => Ok(Self::Shader),
             _ => Err(format!(
                 "Unknown type '{project_type}'. Supported project types are: mod, resource-pack, shader",
             )),

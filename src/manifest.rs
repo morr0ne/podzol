@@ -1,5 +1,5 @@
 use anyhow::Result;
-use async_zip::{base::write::ZipFileWriter, Compression, ZipEntryBuilder};
+use async_zip::{Compression, ZipEntryBuilder, base::write::ZipFileWriter};
 use futures_io::AsyncWrite;
 use futures_util::future::try_join_all;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
